@@ -166,18 +166,22 @@ class DashCoreExample {
                         }
                     }
                 },
+                "---",
                 {
-                    opcode: 'exEditExtension',
+                    opcode: 'exAddLineToConsole',
                     blockType: BlockType.COMMAND,
-                    text: 'edit extension with id [ID] to [DATA]',
+                    text: 'add [LINE] line to pseudo-console',
                     arguments: {
-                        ID: {
-                            type: ArgumentType.STRING
-                        },
-                        DATA: {
-                            type: ArgumentType.STRING
+                        LINE: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'Hello, world!'
                         }
                     }
+                },
+                {
+                    opcode: 'exClearConsole',
+                    blockType: BlockType.COMMAND,
+                    text: 'clear pseudo-console'
                 }
             ]
         };
@@ -230,8 +234,12 @@ class DashCoreExample {
         this.runtime.extensionManager.removeExtension(args.ID);
     }
 
-    exEditExtension (args) {
-        this.runtime.extensionManager.editExtension(args.ID, args.DATA);
+    exAddLineToConsole (args) {
+        this.runtime.console.addLine(args.LINE);
+    }
+
+    exClearConsole () {
+        this.runtime.console.clear();
     }
 }
 
