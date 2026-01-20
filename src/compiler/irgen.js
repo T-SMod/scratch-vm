@@ -425,6 +425,22 @@ class ScriptTreeGenerator {
                 property: block.fields.PROPERTY.value
             });
 
+        case 'console_of': {
+            const property = block.fields.PROPERTY.value;
+
+            // If the runtime.console does not exist, these may all return 0.
+            switch (property) {
+            case 'content':
+                return new IntermediateInput(InputOpcode.CONSOLE_OF_CONTENT, InputType.ARRAY);
+            case 'linescount':
+                return new IntermediateInput(InputOpcode.CONSOLE_OF_LINES_COUNT, InputType.NUMBER);
+            case 'symbols':
+                return new IntermediateInput(InputOpcode.CONSOLE_OF_SYMBOLS, InputType.NUMBER);
+            default:
+                return this.createConstantInput(0);
+            }
+        }
+
         case 'event_broadcast_menu': {
             const broadcastOption = block.fields.BROADCAST_OPTION;
             const broadcastVariable = this.target.lookupBroadcastMsg(broadcastOption.id, broadcastOption.value);
@@ -1105,6 +1121,32 @@ class ScriptTreeGenerator {
         case 'data_showvariable':
             return new IntermediateStackBlock(StackOpcode.VAR_SHOW, {
                 variable: this.descendVariable(block, 'VARIABLE', SCALAR_TYPE)
+            });
+
+        case 'console_clear':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_CLEAR);
+        case 'console_addline':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_ADD_LINE, {
+                line: this.descendInputOfBlock(block, 'LINE').toType(InputType.STRING),
+                moveCursor: false
+            });
+        case 'console_addlineandmove':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_ADD_LINE, {
+                line: this.descendInputOfBlock(block, 'LINE').toType(InputType.STRING),
+                moveCursor: true
+            });
+        case 'console_editline':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_EDIT_LINE, {
+                line: this.descendInputOfBlock(block, 'LINE').toType(InputType.STRING)
+            });
+        case 'console_editsymbol':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_EDIT_SYMBOL, {
+                value: this.descendInputOfBlock(block, 'VALUE').toType(InputType.STRING)
+            });
+        case 'console_movecursor':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_MOVE_CURSOR, {
+                row: this.descendInputOfBlock(block, 'ROW'),
+                symbol: this.descendInputOfBlock(block, 'SYMBOL')
             });
 
         case 'event_broadcast':
