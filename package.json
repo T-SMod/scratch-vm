@@ -1,13 +1,13 @@
 {
   "name": "scratch-vm",
   "version": "2.1.46",
-  "description": "Virtual Machine for T-SMod",
-  "author": "T-SMod Team",
+  "description": "Virtual Machine for Dash",
+  "author": "DashBlocks Team",
   "license": "MPL-2.0",
-  "homepage": "https://github.com/T-SMod/scratch-vm#readme",
+  "homepage": "https://github.com/DashBlocks/scratch-vm#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/T-SMod/scratch-vm.git"
+    "url": "https://github.com/DashBlocks/scratch-vm.git"
   },
   "main": "./src/index.js",
   "browser": "./src/index.js",
@@ -36,7 +36,7 @@
   "dependencies": {
     "@turbowarp/json": "^0.1.2",
     "@turbowarp/jszip": "^3.11.0",
-    "@turbowarp/nanolog": "^1.0.1",
+    "@turbowarp/nanolog": "^0.2.0",
     "@vernier/godirect": "1.5.0",
     "arraybuffer-loader": "^1.0.6",
     "atob": "2.1.2",
@@ -46,7 +46,7 @@
     "diff-match-patch": "1.0.4",
     "format-message": "6.2.1",
     "htmlparser2": "3.10.0",
-    "scratch-parser": "github:T-SMod/scratch-parser#master",
+    "scratch-parser": "github:DashBlocks/scratch-parser#master",
     "scratch-sb1-converter": "0.2.7",
     "scratch-translate-extension-languages": "^1.0.7",
     "text-encoding": "0.7.0",
@@ -77,10 +77,10 @@
     "lodash.defaultsdeep": "4.6.1",
     "pngjs": "3.3.3",
     "scratch-audio": "0.1.0-prerelease.20231221012053",
-    "scratch-blocks": "github:T-SMod/scratch-blocks#develop",
+    "scratch-blocks": "github:DashBlocks/scratch-blocks#develop-builds",
     "scratch-l10n": "3.16.20231222031921",
     "scratch-render": "0.1.0-prerelease.20231220210403",
-    "scratch-render-fonts": "github:T-SMod/penguinmod-render-fonts#develop",
+    "scratch-render-fonts": "github:DashBlocks/penguinmod-render-fonts#develop",
     "scratch-storage": "2.3.1",
     "script-loader": "0.7.2",
     "stats.js": "0.17.0",
