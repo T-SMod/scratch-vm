@@ -522,6 +522,12 @@ class Runtime extends EventEmitter {
         this.enforcePrivacy = true;
 
         /**
+         * If true, an external communication method exists and enforcePrivacy is enabled.
+         * Do not update this directly. Must be changed via public functions that call Runtime.updatePrivacy().
+         */
+        this.privacyRestrictionsActive = false;
+
+        /**
          * Internal map of opaque identifiers to the callback to run that function.
          * @type {Map<string, function>}
          */
@@ -1668,7 +1674,12 @@ class Runtime extends EventEmitter {
             blockInfo.blockType === BlockType.ARRAY ||
             blockInfo.blockType === BlockType.OBJECT
         ) {
-            if (!blockInfo.disableMonitor && context.inputList.length === 0) {
+            if (
+                !blockInfo.disableMonitor &&
+                context.inputList.length === 0 &&
+                !Object.values(blockInfo.arguments || {}).some((arg) =>
+                    [ArgumentType.BUTTON_EXPANDABLE_ADD, ArgumentType.BUTTON_EXPANDABLE_REMOVE].includes(arg.type))
+            ) {
                 blockJSON.checkboxInFlyout = true;
             }
         } else if (
@@ -3698,12 +3709,12 @@ class Runtime extends EventEmitter {
     }
 
     updatePrivacy () {
-        const enforceRestrictions = (
+        this.privacyRestrictionsActive = (
             this.enforcePrivacy &&
             Object.values(this.externalCommunicationMethods).some(i => i)
         );
         if (this.renderer && this.renderer.setPrivateSkinAccess) {
-            this.renderer.setPrivateSkinAccess(!enforceRestrictions);
+            this.renderer.setPrivateSkinAccess(!this.privacyRestrictionsActive);
         }
     }
 
