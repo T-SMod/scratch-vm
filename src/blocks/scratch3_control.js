@@ -1,5 +1,4 @@
 const Cast = require('../util/cast');
-const {isPaused, setPaused} = require('../../../../src/addons/addons/debugger/module');
 
 class Scratch3ControlBlocks {
     constructor (runtime) {
@@ -16,9 +15,6 @@ class Scratch3ControlBlocks {
         this._counter = 0; // used by compiler
 
         this.runtime.on('RUNTIME_DISPOSED', this.clearCounter.bind(this));
-
-        // Check if the pause button exists, we will use that if availiable
-        this.pauseButton = document.querySelector(typeof scaffolding !== "undefined" ? `[class*="pause-button"]` : "img.pause-btn.addons-display-none-pause");
     }
 
     /**
@@ -43,7 +39,9 @@ class Scratch3ControlBlocks {
             control_is_paused: this.isPaused,
             control_stop: this.stop,
             control_create_clone_of: this.createClone,
+            // control_create_clone_with_variable: this.createCloneWithVariable,
             control_delete_this_clone: this.deleteClone,
+            control_is_clone: this.isClone,
             control_get_counter: this.getCounter,
             control_incr_counter: this.incrCounter,
             control_clear_counter: this.clearCounter,
@@ -171,19 +169,15 @@ class Scratch3ControlBlocks {
     }
 
     resume (args, util) {
-        try {
-            if (this.pauseButton) this.pauseButton.click();
-            else setPaused(false);
-        } catch {/* generator is running error - lies */}
+        this.runtime.setPaused(false);
     }
 
     pause (args, util) {
-        if (this.pauseButton) this.pauseButton.click();
-        else setPaused(true);
+        this.runtime.setPaused(true);
     }
 
     isPaused (args, util) {
-        return isPaused();
+        return this.runtime.getPaused();
     }
 
     stop (args, util) {
@@ -195,13 +189,18 @@ class Scratch3ControlBlocks {
             util.stopOtherTargetThreads();
         } else if (option === 'this script') {
             util.stopThisScript();
+        } else if (option === 'scripts in this target') {
+            this.runtime.stopForTarget(util.target);
         }
     }
 
     createClone (args, util) {
         this._createClone(Cast.toString(args.CLONE_OPTION), util.target);
     }
-    _createClone (cloneOption, target) { // used by compiler
+    createCloneWithVariable (args, util) {
+        this._createClone(Cast.toString(args.CLONE_OPTION), util.target, args.VARIABLE, args.VALUE);
+    }
+    _createClone (cloneOption, target, variableArg, variableValue) { // used by compiler
         // Set clone target
         let cloneTarget;
         if (cloneOption === '_myself_') {
@@ -220,6 +219,13 @@ class Scratch3ControlBlocks {
 
             // Place behind the original target.
             newClone.goBehindOther(cloneTarget);
+
+            // Set variable for clone target.
+            if (variableArg) {
+                const variable = newClone.lookupOrCreateVariable(
+                    args.VARIABLE.id, args.VARIABLE.name);
+                variable.value = variableValue;
+            }
         }
     }
 
@@ -227,6 +233,10 @@ class Scratch3ControlBlocks {
         if (util.target.isOriginal) return;
         this.runtime.disposeTarget(util.target);
         this.runtime.stopForTarget(util.target);
+    }
+
+    isClone (args, util) {
+        return !util.target.isOriginal;
     }
 
     getCounter () {

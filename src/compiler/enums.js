@@ -129,6 +129,7 @@ const StackOpcode = {
     CONTROL_STOP_ALL: 'control.stopAll',
     CONTROL_STOP_OTHERS: 'control.stopOthers',
     CONTROL_STOP_SCRIPT: 'control.stopScript',
+    CONTROL_STOP_THIS_TARGET: 'control.stopThisTarget',
     CONTROL_WAIT: 'control.wait',
     CONTROL_WAIT_UNTIL: 'control.waitUntil',
     CONTROL_CLEAR_COUNTER: 'control.counterClear',
@@ -148,6 +149,7 @@ const StackOpcode = {
 
     CONSOLE_CLEAR: 'console.clear',
     CONSOLE_ADD_LINE: 'console.addLine',
+    CONSOLE_PRINT: 'console.print',
     CONSOLE_EDIT_LINE: 'console.editLine',
     CONSOLE_EDIT_SYMBOL: 'console.editSymbol',
     CONSOLE_MOVE_CURSOR: 'console.moveCursor',
@@ -272,7 +274,6 @@ const InputOpcode = {
 
     CONSOLE_OF_CONTENT: 'console.of.content',
     CONSOLE_OF_LINES_COUNT: 'console.of.linesCount',
-    CONSOLE_OF_SYMBOLS: 'console.of.symbols',
 
     MOTION_X_GET: 'motion.x',
     MOTION_Y_GET: 'motion.y',
@@ -364,6 +365,7 @@ const InputOpcode = {
 
     CONTROL_IF_THEN_ELSE: 'control.ifThenElse',
     CONTROL_IS_PAUSED: 'control.isPaused',
+    CONTROL_IS_CLONE: 'control.isClone',
     CONTROL_COUNTER: 'control.counter',
 
     TW_KEY_LAST_PRESSED: 'tw.lastKeyPressed'

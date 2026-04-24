@@ -583,6 +583,8 @@ class JSGenerator {
             return `(${this.descendInput(node.condition)} ? ${this.descendInput(node.then)} : ${this.descendInput(node.else)})`;
         case InputOpcode.CONTROL_IS_PAUSED:
             return 'runtime.ext_scratch3_control.isPaused()';
+        case InputOpcode.CONTROL_IS_CLONE:
+            return '!target.isOriginal';
         case InputOpcode.CONTROL_COUNTER:
             return 'runtime.ext_scratch3_control._counter';
 
@@ -676,8 +678,6 @@ class JSGenerator {
             return `(${CONSOLE} ? ${CONSOLE}.props.lines : 0)`;
         case InputOpcode.CONSOLE_OF_LINES_COUNT:
             return `(${CONSOLE} ? ${CONSOLE}.state.linesCount : 0)`;
-        case InputOpcode.CONSOLE_OF_SYMBOLS:
-            return `(${CONSOLE} ? ${CONSOLE}.state.symbols : 0)`;
 
         default:
             log.warn(`JS: Unknown input: ${block.opcode}`, node);
@@ -857,6 +857,10 @@ class JSGenerator {
         case StackOpcode.CONTROL_STOP_SCRIPT:
             this.stopScript();
             break;
+        case StackOpcode.CONTROL_STOP_THIS_TARGET:
+            this.source += 'runtime.stopForTarget(target);\n';
+            this.retire();
+            break;
         case StackOpcode.CONTROL_WAIT: {
             const duration = this.localVariables.next();
             this.source += `thread.timer = timer();\n`;
@@ -952,6 +956,9 @@ class JSGenerator {
             break;
         case StackOpcode.CONSOLE_ADD_LINE:
             this.source += `if (${CONSOLE}) ${CONSOLE}.addLine(${this.descendInput(node.line)}, ${node.moveCursor});\n`;
+            break;
+        case StackOpcode.CONSOLE_PRINT:
+            this.source += `if (${CONSOLE}) ${CONSOLE}.print(${this.descendInput(node.line)}, ${node.moveCursor});\n`;
             break;
         case StackOpcode.CONSOLE_EDIT_LINE:
             this.source += `if (${CONSOLE}) ${CONSOLE}.editLine(${this.descendInput(node.line)});\n`;

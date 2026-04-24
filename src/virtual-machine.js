@@ -15,6 +15,7 @@ const MathUtil = require('./util/math-util');
 const Patcher = require('./util/patcher');
 const Runtime = require('./engine/runtime');
 const RenderedTarget = require('./sprites/rendered-target');
+const SandboxRunner = require('./util/sandboxed-javascript-runner');
 const Sprite = require('./sprites/sprite');
 const StringUtil = require('./util/string-util');
 const formatMessage = require('format-message');
@@ -28,7 +29,6 @@ const {serializeSounds, serializeCostumes} = require('./serialization/serialize-
 require('canvas-toBlob');
 const {exportCostume} = require('./serialization/tw-costume-import-export');
 const Base64Util = require('./util/base64-util');
-const SandboxRunner = require('./util/sandboxed-javascript-runner');
 
 const RESERVED_NAMES = ['_mouse_', '_stage_', '_edge_', '_myself_', '_random_'];
 
@@ -111,6 +111,15 @@ class VirtualMachine extends EventEmitter {
         });
         this.runtime.on(Runtime.PROJECT_CHANGED, () => {
             this.emit(Runtime.PROJECT_CHANGED);
+        });
+        this.runtime.on(Runtime.RUNTIME_SET_PAUSED, paused => {
+            this.emit(Runtime.RUNTIME_SET_PAUSED, paused);
+        });
+        this.runtime.on(Runtime.RUNTIME_PAUSED, () => {
+            this.emit(Runtime.RUNTIME_PAUSED);
+        });
+        this.runtime.on(Runtime.RUNTIME_UNPAUSED, () => {
+            this.emit(Runtime.RUNTIME_UNPAUSED);
         });
         this.runtime.on(Runtime.VISUAL_REPORT, visualReport => {
             this.emit(Runtime.VISUAL_REPORT, visualReport);
@@ -211,7 +220,6 @@ class VirtualMachine extends EventEmitter {
 
         this.extensionManager = new ExtensionManager(this);
         this.securityManager = this.extensionManager.securityManager;
-        this.SandboxRunner = SandboxRunner;
         this.runtime.extensionManager = this.extensionManager;
 
         // Load core extensions
@@ -230,6 +238,7 @@ class VirtualMachine extends EventEmitter {
         this.exports = {
             Sprite,
             Patcher,
+            SandboxRunner,
             RenderedTarget,
             JSZip,
             Variable,
@@ -383,6 +392,22 @@ class VirtualMachine extends EventEmitter {
      */
     stopAll () {
         this.runtime.stopAll();
+    }
+
+    /**
+     * Pause/resume all threads and running activities.
+     * @param {boolean} paused Whether to pause or resume the project.
+     */
+    setPaused (paused) {
+        this.runtime.setPaused(paused);
+    }
+
+    /**
+     * Get whether "everything" is currently paused.
+     * @return {boolean} True if the project is paused.
+     */
+    getPaused () {
+        return this.runtime.getPaused();
     }
 
     /**

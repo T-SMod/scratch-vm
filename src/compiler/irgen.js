@@ -434,8 +434,6 @@ class ScriptTreeGenerator {
                 return new IntermediateInput(InputOpcode.CONSOLE_OF_CONTENT, InputType.ARRAY);
             case 'linescount':
                 return new IntermediateInput(InputOpcode.CONSOLE_OF_LINES_COUNT, InputType.NUMBER);
-            case 'symbols':
-                return new IntermediateInput(InputOpcode.CONSOLE_OF_SYMBOLS, InputType.NUMBER);
             default:
                 return this.createConstantInput(0);
             }
@@ -867,6 +865,8 @@ class ScriptTreeGenerator {
             });
         case 'control_is_paused':
             return new IntermediateInput(InputOpcode.CONTROL_IS_PAUSED, InputType.BOOLEAN);
+        case 'control_is_clone':
+            return new IntermediateInput(InputOpcode.CONTROL_IS_CLONE, InputType.BOOLEAN);
         case 'control_get_counter':
             return new IntermediateInput(InputOpcode.CONTROL_COUNTER, InputType.NUMBER_POS_INT | InputType.NUMBER_ZERO);
 
@@ -1035,6 +1035,8 @@ class ScriptTreeGenerator {
                 return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_OTHERS);
             } else if (level === 'this script') {
                 return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_SCRIPT);
+            } else if (level === 'scripts in this target') {
+                return new IntermediateStackBlock(StackOpcode.CONTROL_STOP_THIS_TARGET);
             }
             return new IntermediateStackBlock(StackOpcode.NOP);
         }
@@ -1134,6 +1136,11 @@ class ScriptTreeGenerator {
             return new IntermediateStackBlock(StackOpcode.CONSOLE_ADD_LINE, {
                 line: this.descendInputOfBlock(block, 'LINE').toType(InputType.STRING),
                 moveCursor: true
+            });
+        case 'console_print':
+            return new IntermediateStackBlock(StackOpcode.CONSOLE_PRINT, {
+                line: this.descendInputOfBlock(block, 'LINE').toType(InputType.STRING),
+                moveCursor: false
             });
         case 'console_editline':
             return new IntermediateStackBlock(StackOpcode.CONSOLE_EDIT_LINE, {
