@@ -230,12 +230,14 @@ class JSGenerator {
                 return `[${node.value[0]},${node.value[1]},${node.value[2]}]`;
             } else if (block.isAlwaysType(InputType.ARRAY)) {
                 if (!Array.isArray(node.value)) throw new Error(`JS: '${block.type}' type constant was not an array.`);
-                return JSON.stringify(node.value);
+                return `(new globalState.NormalArray(${JSON.stringify(node.value)}))`;
             } else if (block.isAlwaysType(InputType.OBJECT)) {
                 if (!(typeof node.value === 'object' && node.value instanceof Object && !Array.isArray(node.value))) {
                     throw new Error(`JS: '${block.type}' type constant was not an object.`);
                 }
-                return JSON.stringify(node.value);
+                const strValue = JSON.stringify(node.value);
+                if (strValue === "{}") return "(new globalState.NormalObject())";
+                return `(new globalState.NormalObject(Object.entires(${JSON.stringify(node.value)})))`;
             } else if (block.isSometimesType(InputType.STRING)) {
                 return `"${sanitize(node.value.toString())}"`;
             } throw new Error(`JS: Unknown constant input type '${block.type}'.`);
@@ -304,7 +306,7 @@ class JSGenerator {
         case InputOpcode.MOTION_Y_GET:
             return 'limitPrecision(target.y)';
         case InputOpcode.MOTION_XY_GET:
-            return '[limitPrecision(target.x), limitPrecision(target.y)]';
+            return '(new globalState.NormalArray([limitPrecision(target.x), limitPrecision(target.y)]))';
 
         case InputOpcode.SENSING_MODALS_PROMPT: {
             return `(prompt(${this.descendInput(node.message)}, ${this.descendInput(node.value)}) || "")`;
@@ -319,7 +321,7 @@ class JSGenerator {
         case InputOpcode.SENSING_MOUSE_Y:
             return 'runtime.ioDevices.mouse.getScratchY()';
         case InputOpcode.SENSING_MOUSE_XY:
-            return '[runtime.ioDevices.mouse.getScratchX(), runtime.ioDevices.mouse.getScratchY()]';
+            return '(new globalState.NormalArray([runtime.ioDevices.mouse.getScratchX(), runtime.ioDevices.mouse.getScratchY()]))';
 
         case InputOpcode.OP_ABS:
             return `Math.abs(${this.descendInput(node.value)})`;
@@ -545,7 +547,7 @@ class JSGenerator {
             return `(${targetRef} ? ${targetRef}.y : 0)`;
         } case InputOpcode.SENSING_OF_POS_XY: {
             const targetRef = this.descendTargetReference(node.object);
-            return `(${targetRef} ? [${targetRef}.x, ${targetRef}.y] : 0)`;
+            return `(${targetRef} ? new globalState.NormalArray([${targetRef}.x, ${targetRef}.y]) : 0)`;
         } case InputOpcode.SENSING_OF_DIRECTION: {
             const targetRef = this.descendTargetReference(node.object);
             return `(${targetRef} ? ${targetRef}.direction : 0)`;
@@ -582,7 +584,7 @@ class JSGenerator {
         case InputOpcode.CONTROL_IF_THEN_ELSE:
             return `(${this.descendInput(node.condition)} ? ${this.descendInput(node.then)} : ${this.descendInput(node.else)})`;
         case InputOpcode.CONTROL_IS_PAUSED:
-            return 'runtime.ext_scratch3_control.isPaused()';
+            return 'runtime.getPaused()';
         case InputOpcode.CONTROL_IS_CLONE:
             return '!target.isOriginal';
         case InputOpcode.CONTROL_COUNTER:
@@ -601,10 +603,10 @@ class JSGenerator {
                 return `${this.descendInput(json)}.includes(${this.descendInput(value)})`;
             }
             if (json.isAlwaysType(InputType.OBJECT)) {
-                return `Object.values(${this.descendInput(json)}).includes(${this.descendInput(value)})`;
+                return `${this.descendInput(json)}.values().toArray().includes(${this.descendInput(value)})`;
             }
             const jsonVar = this.localVariables.next();
-            return `((${jsonVar}) => Array.isArray(${jsonVar}) ? ${jsonVar}.includes(${this.descendInput(value)}) : Object.values(${jsonVar}).includes(${this.descendInput(value)}))(${this.descendInput(json)})`;
+            return `((${jsonVar}) => Array.isArray(${jsonVar}) ? ${jsonVar}.includes(${this.descendInput(value)}) : ${jsonVar}.values().toArray().includes(${this.descendInput(value)}))(${this.descendInput(json)})`;
         }
         case InputOpcode.JSON_LENGTH: {
             const value = node.value;
@@ -612,10 +614,10 @@ class JSGenerator {
                 return `${this.descendInput(value)}.length`;
             }
             if (value.isAlwaysType(InputType.OBJECT)) {
-                return `Object.keys(${this.descendInput(value)}).length`;
+                return `${this.descendInput(value)}.size`;
             }
             const valueVar = this.localVariables.next();
-            return `((${valueVar}) => Array.isArray(${valueVar}) ? ${valueVar}.length : Object.keys(${valueVar}).length)(${this.descendInput(value)})`;
+            return `((${valueVar}) => ${valueVar}[Array.isArray(${valueVar}) ? "length" : "size"])(${this.descendInput(value)})`;
         }
         case InputOpcode.JSON_GET_BY_PATH:
             return `runtime.ext_dash_json.getByPath({PATH: ${this.descendInput(node.path)}, VALUE: ${this.descendInput(node.value)}})`;
@@ -626,16 +628,16 @@ class JSGenerator {
         case InputOpcode.JSON_ASSIGN: {
             const main = node.main;
             if (main.isAlwaysType(InputType.ARRAY)) {
-                return `[...${this.descendInput(main)}, ${node.inputs.map((input) => `...${this.descendInput(input.toType(InputType.ARRAY))}`).join(',')}]`;
+                return `${this.descendInput(main)}.concat(${node.inputs.map((input) => this.descendInput(input.toType(InputType.ARRAY))).join(',')})`;
             }
             if (main.isAlwaysType(InputType.OBJECT)) {
-                return `{...${this.descendInput(main)}, ${node.inputs.map((input) => `...${this.descendInput(input)}`).join(',')}}`;
+                return `(new globalState.NormalObject(${this.descendInput(main)})${node.inputs.map((input) => `.assign(${this.descendInput(input)})`).join('')})`;
             }
             const mainVar = this.localVariables.next();
-            return `((${mainVar}) => Array.isArray(${mainVar}) ? [...${mainVar}, ${node.inputs.map((input) => `...${this.descendInput(input.toType(InputType.ARRAY))}`).join(',')}] : {...${mainVar}, ${node.inputs.map((input) => `...${this.descendInput(input)}`).join(',')}})(${this.descendInput(main)})`;
+            return `((${mainVar}) => Array.isArray(${mainVar}) ? ${mainVar}.concat(${node.inputs.map((input) => this.descendInput(input.toType(InputType.ARRAY))).join(',')}) : new globalState.NormalObject(${mainVar})${node.inputs.map((input) => `.assign(${this.descendInput(input)})`).join('')})(${this.descendInput(main)})`;
         }
         case InputOpcode.JSON_ARRAY_EMPTY:
-            return '[]';
+            return '(new globalState.NormalArray())';
         case InputOpcode.JSON_ARRAY_ITEM_OF: {
             if (environment.supportsNullishCoalescing) {
                 if (node.index.isAlwaysType(InputType.NUMBER_INTERPRETABLE | InputType.NUMBER_NAN)) {
@@ -650,39 +652,40 @@ class JSGenerator {
         case InputOpcode.JSON_ARRAY_ITEM_NO_OF:
             return `runtime.ext_dash_json.arrayItemNoOf({ARRAY: ${this.descendInput(node.array)}, VALUE: ${this.descendInput(node.value)}})`;
         case InputOpcode.JSON_ARRAY_IN_FRONT_OF:
-            return `[...${this.descendInput(node.array)}, ${this.descendInput(node.item)}]`;
+            return `${this.descendInput(node.array)}.concat([${this.descendInput(node.item)}])`;
         case InputOpcode.JSON_ARRAY_BEHIND:
-            return `[${this.descendInput(node.item)}, ...${this.descendInput(node.array)}]`;
+            return `[${this.descendInput(node.item)}].concat(${this.descendInput(node.array)})`;
         case InputOpcode.JSON_ARRAY_AT:
             return `arrayInsert(${this.descendInput(node.array)}, ${this.descendInput(node.index)}, ${this.descendInput(node.item)})`;
         case InputOpcode.JSON_ARRAY_SPLIT:
-            return `${this.descendInput(node.text)}.split(${this.descendInput(node.delim)})`;
+            return `(new globalState.NormalArray(${this.descendInput(node.text)}.split(${this.descendInput(node.delim)})))`;
         case InputOpcode.JSON_ARRAY_DELETE:
             return `arrayDelete(${this.descendInput(node.array)}, ${this.descendInput(node.index)})`;
         case InputOpcode.JSON_ARRAY_REPLACE:
             return `arrayReplace(${this.descendInput(node.array)}, ${this.descendInput(node.index)}, ${this.descendInput(node.item)})`;
         case InputOpcode.JSON_ARRAY_EXPANDABLE:
-            return `[${node.inputs.map((input) => this.descendInput(input)).join(',')}]`;
+            return `(new globalState.NormalArray([${node.inputs.map((input) => this.descendInput(input)).join(',')}]))`;
         case InputOpcode.JSON_OBJECT_EMPTY:
-            return '{}';
+            return '(new globalState.NormalObject())';
         case InputOpcode.JSON_OBJECT_SPLIT:
             return `runtime.ext_dash_json.objectSplit({TEXT: ${this.descendInput(node.text)}, KEYDELIM: ${this.descendInput(node.keydelim)}, PAIRDELIM: ${this.descendInput(node.pairdelim)}})`;
         case InputOpcode.JSON_OBJECT_ITEM_OF: {
             const value = this.localVariables.next();
             const key = this.localVariables.next();
-            return `((${value}, ${key}) => !Object.keys(${value}).includes(${key}) ? "" : ${value}[${key}])(${this.descendInput(node.value)}, ${this.descendInput(node.key)})`;
+            return `((${value}, ${key}) => !${value}.has(${key}) ? "" : ${value}.get(${key}))(${this.descendInput(node.value)}, ${this.descendInput(node.key)})`;
         }
         case InputOpcode.JSON_OBJECT_CONTAINS_KEY:
-            return `Object.keys(${this.descendInput(node.object)}).includes(${this.descendInput(node.key)})`;
+            return `${this.descendInput(node.object)}.has(${this.descendInput(node.key)})`;
         case InputOpcode.JSON_OBJECT_SET:
-            return `{...${this.descendInput(node.object)}, [${this.descendInput(node.key)}]: ${this.descendInput(node.item)}}`;
+            return `(new globalState.NormalObject(${this.descendInput(node.object)}).set(${this.descendInput(node.key)}, ${this.descendInput(node.item)}))`;
         case InputOpcode.JSON_OBJECT_DELETE:
-            return `runtime.ext_dash_json.objectDelete({OBJECT: ${this.descendInput(node.object)}, KEY: ${this.descendInput(node.key)}})`;
+            const value = this.localVariables.next();
+            return `((${value}) => (${value}.delete(${this.descendInput(node.key)}), ${value}))(new globalState.NormalObject(${this.descendInput(node.object)}))`;
         case InputOpcode.JSON_OBJECT_ENTRIES:
-            return `runtime.ext_dash_json.objectEntries({OBJECT: ${this.descendInput(node.object)}, PROPERTY: "${sanitize(node.property)}"})`;
+            return `${this.descendInput(node.object)}["${sanitize(node.property)}"]().toArray()`;
 
         case InputOpcode.CONSOLE_OF_CONTENT:
-            return `(${CONSOLE} ? ${CONSOLE}.props.lines : 0)`;
+            return `(${CONSOLE} ? new globalState.NormalArray(${CONSOLE}.props.lines) : 0)`;
         case InputOpcode.CONSOLE_OF_LINES_COUNT:
             return `(${CONSOLE} ? ${CONSOLE}.state.linesCount : 0)`;
 
@@ -794,14 +797,15 @@ class JSGenerator {
             break;
         }
         case StackOpcode.CONTROL_RUN_AS: {
-            // TODO: Not finished. Finish write of this.
-            const spoofTarget = this.localVariables.next();
-            const runnerTarget = this.localVariables.next();
-            this.source += `const ${spoofTarget} = target;\n`;
-            this.source += `const ${runnerTarget} = runtime.ext_scratch3_control._getTargetForRunAs(${this.descendInput(node.target)}, target);\n`;
-            this.source += `if (${runnerTarget}) {\n`;
-            this.source += `  const target = ${runnerTarget};\n`;
+            const oldTarget = this.localVariables.next();
+            const substituteTarget = this.localVariables.next();
+            this.source += `const ${oldTarget} = target;\n`;
+            this.source += `const ${substituteTarget} = runtime.ext_scratch3_control._getTargetForRunAs(${this.descendInput(node.target)}, target);\n`;
+            this.source += `if (${substituteTarget}) {\n`;
+            this.source += `  const target = ${substituteTarget};\n`;
+            this.source += `  thread.compatibilitySubstituteTarget = ${substituteTarget};\n`;
             this.descendStack(node.do, new Frame(false));
+            this.source += `  thread.compatibilitySubstituteTarget = thread.target === ${oldTarget} ? null : ${oldTarget};\n`;
             this.source += '}\n';
             break;
         }
@@ -868,10 +872,10 @@ class JSGenerator {
             break;
         }
         case StackOpcode.CONTROL_RESUME:
-            this.source += 'runtime.ext_scratch3_control.resume();\n';
+            this.source += 'runtime.setPaused(false);\n';
             break;
         case StackOpcode.CONTROL_PAUSE:
-            this.source += 'runtime.ext_scratch3_control.pause();\n';
+            this.source += 'runtime.setPaused(true);\n';
             break;
         case StackOpcode.CONTROL_STOP_ALL:
             this.source += 'runtime.stopAll();\n';
